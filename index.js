@@ -154,7 +154,8 @@ function serveIndex(root, options) {
         if (err) return next(err);
         if (!hidden) files = removeHidden(files);
         if (filter) files = files.filter(function(filename, index, list) {
-          return filter(filename, index, list, path);
+          const isDirectory = fs.statSync(join(path, filename)).isDirectory()
+          return filter(filename, index, list, path, isDirectory);
         });
         files.sort();
 
