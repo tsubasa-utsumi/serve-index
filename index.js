@@ -130,7 +130,7 @@ function serveIndex(root, options) {
     }
 
     // determine ".." display
-    var showUp = normalize(resolve(path) + sep) !== rootPath;
+    var showUp = opts.showUp ? normalize(resolve(path) + sep) !== rootPath : "";
 
     // check if we have a directory
     debug('stat "%s"', path);
