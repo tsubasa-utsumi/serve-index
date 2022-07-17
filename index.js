@@ -165,7 +165,7 @@ function serveIndex(root, options) {
 
         // not acceptable
         if (!type) return next(createError(406));
-        serveIndex[mediaType[type]](req, res, files, next, originalDir, showUp, icons, path, view, template, stylesheet);
+        serveIndex[mediaType[type]](req, res, files, next, originalDir, showUp, icons, path, view, template, stylesheet, opts.root, rootPath == path);
       });
     });
   };
@@ -175,13 +175,16 @@ function serveIndex(root, options) {
  * Respond with text/html.
  */
 
-serveIndex.html = function _html(req, res, files, next, dir, showUp, icons, path, view, template, stylesheet) {
+serveIndex.html = function _html(req, res, files, next, dir, showUp, icons, path, view, template, stylesheet, root, isRoot) {
   var render = typeof template !== 'function'
     ? createHtmlRender(template)
     : template
 
   if (showUp) {
     files.unshift('..');
+  }
+  if (!root || !isRoot) {
+    root = null
   }
 
   // stat all files
@@ -202,7 +205,8 @@ serveIndex.html = function _html(req, res, files, next, dir, showUp, icons, path
         fileList: fileList,
         path: path,
         style: style,
-        viewName: view
+        viewName: view,
+        root: root
       };
 
       // render html
@@ -261,7 +265,7 @@ serveIndex.plain = function _plain (req, res, files, next, dir, showUp, icons, p
  * @private
  */
 
-function createHtmlFileList(files, dir, useIcons, view) {
+function createHtmlFileList(files, dir, useIcons, view, root) {
   var html = '<ul id="files" class="view-' + escapeHtml(view) + '">'
     + (view === 'details' ? (
       '<li class="header">'
@@ -269,6 +273,26 @@ function createHtmlFileList(files, dir, useIcons, view) {
       + '<span class="size">Size</span>'
       + '<span class="date">Modified</span>'
       + '</li>') : '');
+
+  if (root) {
+    const fun = (function (root) {
+      var classes = [];
+
+      if (useIcons) {
+        classes.push('icon');
+        classes.push('icon-directory');
+      }
+
+      return '<li><a href="'
+        + escapeHtml(normalizeSlashes(normalize(root.path)))
+        + '" class="' + escapeHtml(classes.join(' ')) + '"'
+        + ' title="' + escapeHtml(root.name) + '">'
+        + '<span class="name">' + escapeHtml(root.name) + '</span>'
+        + '</a></li>';
+    })
+    const r = fun(root)
+    html += r + "\n"
+  }
 
   html += files.map(function (file) {
     var classes = [];
@@ -329,7 +353,7 @@ function createHtmlRender(template) {
 
       var body = str
         .replace(/\{style\}/g, locals.style.concat(iconStyle(locals.fileList, locals.displayIcons)))
-        .replace(/\{files\}/g, createHtmlFileList(locals.fileList, locals.directory, locals.displayIcons, locals.viewName))
+        .replace(/\{files\}/g, createHtmlFileList(locals.fileList, locals.directory, locals.displayIcons, locals.viewName, locals.root))
         .replace(/\{directory\}/g, escapeHtml(locals.directory))
         .replace(/\{linked-path\}/g, htmlPath(locals.directory));
 
